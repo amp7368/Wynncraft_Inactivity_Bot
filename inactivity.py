@@ -65,8 +65,41 @@ async def on_message(message):
             await on_command_help(message)
         elif message.content.lower().startswith(PREFIX + "info"):
             await on_command_info(message)
+        elif message.content.lower().startswith(PREFIX + "player_inactivity"):
+            await on_command_player_inactivity(message)
 
     except:
+        traceback.print_exc()
+
+
+async def on_command_player_inactivity(message):
+    '''
+    create an inactivity report for a single player
+    :param message: the message that the user sent
+    :return:
+    '''
+    msgs = message.content.split(" ")
+    if len(msgs) != 2:
+        await correct_command_player_inactivity(message.channel)
+    name = msgs[1]
+    if name in players_today:
+        player = players_today[name]
+    else:
+        try:
+            name = get_uuid(name, time.time() - 60)[0]
+        except:
+            return
+        player = fetch_login(name)
+    tim = time_inactive(time.time(), player)
+    string = "```ml\n" + '|    ' + "{:<30}".format(" Member") + '|  ' + "{:<23}".format(
+        "Time Inactive") + '|' + '\n' + \
+             ('+-----' + '-' * 29 + '+' + '-' * 25 + '+\n') + \
+             '|    ' + "{:<30}".format(msgs[1]) + '|  ' + "{:<23}".format(
+        str(tim) + " Days") + '|' + '\n' + ('+-----' + '-' * 29 + '+' + '-' * 25 + '+\n```')
+
+    try:
+        await message.channel.send(string)
+    except client_exceptions.ClientOSError:
         pass
 
 
@@ -137,10 +170,23 @@ async def on_command_inactivity(message):
         return
 
 
+async def correct_command_player_inactivity(channel):
+    '''
+    sends the correct usage of the !player_inactivity command
+    :param channel: the channel the message should be sent in
+    :return:
+    '''
+    try:
+        a = await channel.send("!player_inactivity <player name>")
+        del a
+    except client_exceptions.ClientOSError:
+        pass
+
+
 async def correct_command_inacitivity(channel):
     '''
     sends the correct usage of the !inactivity command
-    :param channel:
+    :param channel: the channel the message should be sent in
     :return:
     '''
     try:
@@ -238,8 +284,9 @@ async def make_message_inactivity(guild_data, channel):
             if players_today[member['name']]['name'] != member['name']:
                 string = "{:<30}".format(players_today[member['name']]['name']) + '|  ' + "{:<23}".format(
                     member['rank'].lower()) + '|  ' + "{:<23}".format(str(tim) + " Days") + '|' + '***\n'
-            string = "{:<30}".format(players_today[member['name']]['name']) + '|  ' + "{:<23}".format(
-                member['rank'].lower()) + '|  ' + "{:<23}".format(str(tim) + " Days") + '|' + '\n'
+            else:
+                string = "{:<30}".format(players_today[member['name']]['name']) + '|  ' + "{:<23}".format(
+                    member['rank'].lower()) + '|  ' + "{:<23}".format(str(tim) + " Days") + '|' + '\n'
         except urllib.error.HTTPError:
             tim = -1
             string = "Unavailable \n"

@@ -1,0 +1,3 @@
+number  # bot id
+login   # login key
+number,number,number  # Red component, Green component, Blue component
